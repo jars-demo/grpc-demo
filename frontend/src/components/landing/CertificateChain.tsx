@@ -11,7 +11,7 @@ function Cert({
   tone?: 'ca' | 'trusted' | 'untrusted' | 'expired'
 }) {
   const tones = {
-    ca: 'border-accent bg-accent-soft',
+    ca: 'border-text/40 bg-surface',
     trusted: 'border-line bg-bg',
     untrusted: 'border-dashed border-bad/60 bg-bg',
     expired: 'border-dashed border-warn/70 bg-bg',

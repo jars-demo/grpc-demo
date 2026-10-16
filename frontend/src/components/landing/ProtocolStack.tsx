@@ -25,15 +25,13 @@ export function ProtocolStack() {
     <figure aria-labelledby="stack-caption" className="grid gap-4 sm:grid-cols-2">
       {STACKS.map((stack) => (
         <div key={stack.name} className="rounded-xl border border-line bg-bg p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
-            {stack.name}
-          </p>
+          <p className="mb-3 text-sm font-medium text-muted">{stack.name}</p>
           <ol className="space-y-1.5">
             {stack.layers.map((layer) => (
               <li
                 key={layer.label}
                 className={`rounded-lg border px-3 py-2 ${
-                  layer.secure ? 'border-accent/40 bg-accent-soft' : 'border-line bg-surface'
+                  layer.secure ? 'border-text/30 bg-bg' : 'border-line bg-surface'
                 }`}
               >
                 <span className="block font-mono text-sm font-medium">{layer.label}</span>

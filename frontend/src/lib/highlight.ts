@@ -1,4 +1,4 @@
-// Build-time syntax highlighting. Code surfaces are dark in both themes, so one Shiki theme.
+// Build-time syntax highlighting with a light and a dark theme; CSS picks one (globals.css).
 import { createHighlighter, type Highlighter } from 'shiki'
 
 const LANGS = ['bash', 'powershell', 'python', 'json', 'toml', 'yaml', 'protobuf', 'text'] as const
@@ -20,9 +20,13 @@ export function resolveLang(lang: string | undefined): string {
 }
 
 export async function highlight(code: string, lang: string | undefined): Promise<string> {
-  highlighter ??= createHighlighter({ themes: ['github-dark-default'], langs: [...LANGS] })
+  highlighter ??= createHighlighter({
+    themes: ['github-light', 'github-dark-default'],
+    langs: [...LANGS],
+  })
   return (await highlighter).codeToHtml(code.replace(/\n$/, ''), {
     lang: resolveLang(lang),
-    theme: 'github-dark-default',
+    themes: { light: 'github-light', dark: 'github-dark-default' },
+    defaultColor: 'light',
   })
 }

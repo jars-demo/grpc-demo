@@ -1,57 +1,38 @@
 @import 'tailwindcss';
 
-/* Light theme tokens. The accent is a highlight, not a fill colour for everything. */
+/* Plain, neutral palette: ink on paper. No brand colour; emphasis comes from weight and contrast. */
 :root {
   --bg: #ffffff;
-  --surface: #f7f7fa;
-  --text: #18181b;
-  --muted: #71717a;
-  --line: #e4e4e7;
-  --accent: #6d5ae6;
-  --accent-2: #8b7cf6;
-  --accent-soft: #efedfd;
-  --code-bg: #18181b;
-  --code-line: #2e2e33;
-  --ok: #15803d;
-  --warn: #b45309;
-  --bad: #b91c1c;
+  --surface: #f7f7f5;
+  --text: #1a1a1a;
+  --muted: #6b6b68;
+  --line: #e7e7e3;
+  --accent: #1a1a1a;
+  --accent-2: #4a4a47;
+  --accent-soft: #f1f1ee;
+  --code-bg: #f7f7f5;
+  --code-line: #e7e7e3;
+  --ok: #2f6b3a;
+  --warn: #8a5a12;
+  --bad: #a3322b;
   color-scheme: light;
 }
 
-/* Dark theme: system preference unless the visitor chose light explicitly... */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #0e0e11;
-    --surface: #17171b;
-    --text: #f4f4f5;
-    --muted: #a1a1aa;
-    --line: #2a2a30;
-    --accent: #9d90f8;
-    --accent-2: #b4aafa;
-    --accent-soft: #221f3a;
-    --code-bg: #0a0a0c;
-    --code-line: #26262b;
-    --ok: #4ade80;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    color-scheme: dark;
-  }
-}
-/* ...or because they chose dark explicitly. */
+/* Dark is opt-in only (theme toggle), never forced by the system setting. Neutral greys. */
 :root[data-theme='dark'] {
-  --bg: #0e0e11;
-  --surface: #17171b;
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --line: #2a2a30;
-  --accent: #9d90f8;
-  --accent-2: #b4aafa;
-  --accent-soft: #221f3a;
-  --code-bg: #0a0a0c;
-  --code-line: #26262b;
-  --ok: #4ade80;
-  --warn: #fbbf24;
-  --bad: #f87171;
+  --bg: #171717;
+  --surface: #1f1f1f;
+  --text: #ececea;
+  --muted: #9b9b97;
+  --line: #2e2e2c;
+  --accent: #ececea;
+  --accent-2: #c4c4c0;
+  --accent-soft: #242423;
+  --code-bg: #1f1f1f;
+  --code-line: #2e2e2c;
+  --ok: #8fc79b;
+  --warn: #e0b46a;
+  --bad: #e58a83;
   color-scheme: dark;
 }
 
@@ -135,7 +116,7 @@ body {
   font-weight: 620;
 }
 .prose-workshop a {
-  color: var(--accent);
+  color: var(--text);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
@@ -160,10 +141,9 @@ body {
   padding: 0.08rem 0.32rem;
 }
 .prose-workshop blockquote {
-  border-left: 3px solid var(--accent-2);
-  background: var(--accent-soft);
-  padding: 0.75rem 1rem;
-  border-radius: 0 8px 8px 0;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+  padding: 0.1rem 0 0.1rem 1rem;
 }
 .prose-workshop strong {
   font-weight: 640;
@@ -214,6 +194,9 @@ body {
   font-family: var(--font-mono);
   font-size: 0.84rem;
   line-height: 1.6;
+}
+:root[data-theme='dark'] .code-body .shiki span {
+  color: var(--shiki-dark) !important;
 }
 .code-body code {
   font-family: var(--font-mono);

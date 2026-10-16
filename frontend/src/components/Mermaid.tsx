@@ -3,9 +3,7 @@
 import { useEffect, useId, useState } from 'react'
 
 function isDark(): boolean {
-  const chosen = document.documentElement.dataset.theme
-  if (chosen) return chosen === 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+  return document.documentElement.dataset.theme === 'dark'
 }
 
 // Renders a Mermaid diagram from its source in the browser. Until it renders (or if it cannot),
@@ -17,14 +15,9 @@ export function Mermaid({ source, label }: { source: string; label: string }) {
   const [themeTick, setThemeTick] = useState(0)
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
     const onChange = () => setThemeTick((n) => n + 1)
-    media.addEventListener('change', onChange)
     window.addEventListener('grpc-demo:theme', onChange)
-    return () => {
-      media.removeEventListener('change', onChange)
-      window.removeEventListener('grpc-demo:theme', onChange)
-    }
+    return () => window.removeEventListener('grpc-demo:theme', onChange)
   }, [])
 
   useEffect(() => {
@@ -39,26 +32,26 @@ export function Mermaid({ source, label }: { source: string; label: string }) {
           fontFamily: 'inherit',
           themeVariables: {
             darkMode: dark,
-            background: dark ? '#0e0e11' : '#ffffff',
-            primaryColor: dark ? '#221f3a' : '#efedfd',
-            primaryBorderColor: dark ? '#9d90f8' : '#6d5ae6',
-            primaryTextColor: dark ? '#f4f4f5' : '#18181b',
-            lineColor: dark ? '#a1a1aa' : '#71717a',
-            secondaryColor: dark ? '#17171b' : '#f7f7fa',
-            tertiaryColor: dark ? '#17171b' : '#f7f7fa',
-            actorBkg: dark ? '#221f3a' : '#efedfd',
-            actorBorder: dark ? '#9d90f8' : '#6d5ae6',
-            noteBkgColor: dark ? '#17171b' : '#f7f7fa',
-            noteBorderColor: dark ? '#2a2a30' : '#e4e4e7',
-            noteTextColor: dark ? '#f4f4f5' : '#18181b',
-            textColor: dark ? '#f4f4f5' : '#18181b',
-            actorTextColor: dark ? '#f4f4f5' : '#18181b',
-            signalTextColor: dark ? '#f4f4f5' : '#18181b',
-            labelTextColor: dark ? '#f4f4f5' : '#18181b',
-            signalColor: dark ? '#a1a1aa' : '#71717a',
-            clusterBkg: dark ? '#17171b' : '#f7f7fa',
-            clusterBorder: dark ? '#2a2a30' : '#e4e4e7',
-            edgeLabelBackground: dark ? '#17171b' : '#ffffff',
+            background: dark ? '#171717' : '#ffffff',
+            primaryColor: dark ? '#1f1f1f' : '#f7f7f5',
+            primaryBorderColor: dark ? '#4a4a47' : '#c9c9c4',
+            primaryTextColor: dark ? '#ececea' : '#1a1a1a',
+            lineColor: dark ? '#7a7a76' : '#8a8a86',
+            secondaryColor: dark ? '#1f1f1f' : '#f7f7f5',
+            tertiaryColor: dark ? '#1f1f1f' : '#ffffff',
+            actorBkg: dark ? '#1f1f1f' : '#f7f7f5',
+            actorBorder: dark ? '#4a4a47' : '#c9c9c4',
+            noteBkgColor: dark ? '#242423' : '#ffffff',
+            noteBorderColor: dark ? '#2e2e2c' : '#e7e7e3',
+            noteTextColor: dark ? '#ececea' : '#1a1a1a',
+            textColor: dark ? '#ececea' : '#1a1a1a',
+            actorTextColor: dark ? '#ececea' : '#1a1a1a',
+            signalTextColor: dark ? '#ececea' : '#1a1a1a',
+            labelTextColor: dark ? '#ececea' : '#1a1a1a',
+            signalColor: dark ? '#7a7a76' : '#8a8a86',
+            clusterBkg: dark ? '#1b1b1b' : '#fbfbfa',
+            clusterBorder: dark ? '#2e2e2c' : '#e7e7e3',
+            edgeLabelBackground: dark ? '#171717' : '#ffffff',
             fontSize: '14px',
           },
         })

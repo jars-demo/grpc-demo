@@ -94,7 +94,7 @@ function Check({ done }: { done: boolean }) {
     <span
       aria-hidden="true"
       className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] ${
-        done ? 'border-accent bg-accent text-white' : 'border-line text-transparent'
+        done ? 'border-text bg-text text-bg' : 'border-line text-transparent'
       }`}
     >
       ✓

@@ -15,7 +15,7 @@ export function Section({
 }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 py-16 sm:py-20">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
+      <p className="text-sm font-medium text-muted">{eyebrow}</p>
       <h2 id={`${id}-title`} className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
         {title}
       </h2>
@@ -40,7 +40,7 @@ export function ButtonLink({
 }) {
   const style =
     variant === 'primary'
-      ? 'bg-accent text-white hover:opacity-90'
+      ? 'bg-text text-bg hover:opacity-85'
       : 'border border-line text-text hover:border-accent hover:text-accent'
   return (
     <a

@@ -82,9 +82,7 @@ export default function Home() {
         {/* Hero */}
         <section className="grid gap-10 [&>*]:min-w-0 pb-6 pt-14 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-              JARS DEMO · Hands-on workshop
-            </p>
+            <p className="text-sm font-medium text-muted">JARS DEMO · Hands-on workshop</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-6xl">{TITLE}</h1>
             <p className="mt-3 text-xl italic text-muted sm:text-2xl">{TAGLINE}</p>
             <p className="mt-6 max-w-xl text-lg leading-relaxed">{DESCRIPTION}</p>
@@ -257,7 +255,7 @@ uv run python certs/scripts/certs.py rotate server`}
                   href={`/workshop/${c.slug}/`}
                   className="flex h-full gap-3 p-4 transition hover:bg-surface"
                 >
-                  <span className="font-mono text-xs text-accent">{c.number}</span>
+                  <span className="font-mono text-xs text-muted">{c.number}</span>
                   <span className="flex-1">
                     <span className="block font-medium">{c.title}</span>
                     <span className="block text-sm text-muted">{c.summary}</span>
@@ -321,7 +319,7 @@ uv run python certs/scripts/certs.py rotate server`}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {scenarios.map((s) => (
               <Card key={s.number}>
-                <p className="font-mono text-xs text-accent">Scenario {s.number}</p>
+                <p className="font-mono text-xs text-muted">Scenario {s.number}</p>
                 <p className="mt-1 font-medium">{s.title}</p>
               </Card>
             ))}

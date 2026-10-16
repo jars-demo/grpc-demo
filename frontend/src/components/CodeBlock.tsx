@@ -20,7 +20,7 @@ export async function CodeBlock({ code, lang }: { code: string; lang?: string })
   const isCommand = resolved === 'bash' || resolved === 'powershell'
   return (
     <figure className="not-prose overflow-hidden rounded-xl border border-line bg-code">
-      <figcaption className="flex items-center justify-between border-b border-[var(--code-line)] px-3 py-1.5 text-xs text-zinc-400">
+      <figcaption className="flex items-center justify-between border-b border-line px-3 py-1.5 text-xs text-muted">
         <span>
           {LABELS[resolved] ?? resolved}
           {isCommand && <span className="sr-only"> command to run yourself</span>}

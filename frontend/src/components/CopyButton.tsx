@@ -19,7 +19,7 @@ export function CopyButton({ text, label = 'Copy' }: { text: string; label?: str
     <button
       type="button"
       onClick={copy}
-      className="rounded-md px-2 py-0.5 text-xs font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white"
+      className="rounded-md px-2 py-0.5 text-xs font-medium text-muted transition hover:bg-accent-soft hover:text-text"
       aria-label={`${label} to clipboard`}
     >
       <span aria-live="polite">
