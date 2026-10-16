@@ -1,0 +1,120 @@
+# CI for the gRPC & HTTPS workshop. Actions are pinned to commit SHAs (tag in the comment).
+# No secrets or deployment credentials are needed for any job.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python lint, types, proto, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - name: Install (Python version from .python-version)
+        run: uv sync --frozen
+      - name: Ruff
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Generated bindings match the .proto contract
+        run: uv run python scripts/generate_proto.py --check
+      - name: Mypy (strict)
+        run: uv run mypy
+      - name: Tests (unit, gRPC, TLS/mTLS, certificates, challenge, hygiene)
+        run: |
+          openssl version
+          uv run pytest
+
+  frontend:
+    name: Website lint, types, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      - name: Static build
+        run: npm run build
+
+  config:
+    name: Compose configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker compose config --quiet
+      - run: docker compose --profile tools config --quiet
+
+  stack:
+    name: Images, running stack, end-to-end and integration tests
+    runs-on: ubuntu-latest
+    needs: [python, frontend, config]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Generate workshop certificates (local educational CA, discarded with the runner)
+        run: uv run python certs/scripts/certs.py generate && uv run python certs/scripts/certs.py verify
+      - name: Build and start (runs containers as the runner's UID to read 0600 keys)
+        run: uv run python scripts/tasks.py up
+      - name: Images contain no key material
+        run: |
+          # No certs/out directory and no private-key files anywhere. (Public CA bundles in
+          # /etc/ssl/certs are expected and fine; they contain no private keys.)
+          for image in grpc-demo-service:local grpc-demo-web:local; do
+            docker run --rm --entrypoint sh "$image" -c '
+              test ! -e /app/certs/out || { echo "/app/certs/out exists"; exit 1; }
+              found=$(find / -xdev -type f \( -name "*.key" -o -name "*.p12" \) 2>/dev/null)
+              test -z "$found" || { echo "$found"; exit 1; }'
+            echo "clean: $image"
+          done
+      - name: Smoke test (21 checks, real requests)
+        run: uv run python scripts/smoke_test.py
+      - name: Integration tests
+        run: uv run pytest -m integration tests/integration
+      - name: Final challenge inside Docker (broken profiles must fail)
+        run: |
+          mkdir -p challenge/work
+          docker compose --profile tools build toolbox
+          LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) docker compose --profile tools run --rm challenge start
+          if LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) docker compose --profile tools run --rm challenge check all; then
+            echo "broken scenarios unexpectedly passed" && exit 1
+          fi
+          echo "all broken scenarios fail as intended"
+      - name: Graceful shutdown
+        run: |
+          docker compose stop --timeout 15 grpc-server
+          docker compose ps -a --format '{{.Service}} {{.State}} {{.Status}}' | grep grpc-server
+          docker compose logs grpc-server --tail 5 | grep -q "stopped"
+      - name: Container state and logs on failure
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --tail 80
+      - name: Stop
+        if: always()
+        run: docker compose down

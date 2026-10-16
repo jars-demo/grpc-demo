@@ -1,0 +1,4 @@
+# Scenario 03 - The door that asks for ID
+target = "localhost:50052"
+ca = "certs/out/ca.crt"
+deadline_seconds = 5

@@ -1,0 +1,5 @@
+# Scenario 01 - The certificate nobody trusts
+# Edit this file (your copy in challenge/work/), then: python -m challenge check 01
+target = "localhost:50051"
+ca = "certs/out/rogue-ca.crt"
+deadline_seconds = 5

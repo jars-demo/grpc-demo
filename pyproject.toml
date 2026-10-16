@@ -1,0 +1,96 @@
+[project]
+name = "grpc-demo"
+version = "0.1.0"
+description = "gRPC & HTTPS - From Requests to Secure RPC: a hands-on JARS DEMO workshop."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Jishanahmed AR Shaikh (JARS)" }]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    # gRPC runtime, the standard health-checking service, and the protobuf runtime
+    "grpcio==1.84.0",
+    "grpcio-health-checking==1.84.0",
+    "protobuf==7.36.2",
+    # REST comparison: framework, ASGI server, validation
+    "fastapi==0.143.2",
+    "uvicorn==0.54.0",
+    "pydantic==2.14.1",
+    # HTTP client for the REST examples and smoke test
+    "httpx==0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    # protoc + the gRPC Python plugin, only needed to regenerate services/generated/
+    "grpcio-tools==1.84.0",
+    "pytest==9.1.1",
+    "ruff==0.17.1",
+    "mypy==2.4.0",
+    "types-protobuf==7.35.1.20260906",
+    "grpc-stubs==1.53.0.6",
+]
+
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+# Installed in editable mode by `uv sync`: puts services/ and services/generated/ on sys.path, so
+# `uv run python -m grpc_server` works from the repository root on every OS.
+[tool.hatch.build]
+dev-mode-dirs = ["services", "services/generated"]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "services/common",
+    "services/core",
+    "services/grpc_server",
+    "services/grpc_client",
+    "services/rest_api",
+    "services/generated/grpcdemo",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["services", "services/generated", "."]
+testpaths = ["tests"]
+addopts = "-ra -m 'not integration'"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+markers = [
+    "integration: needs the running Docker Compose stack (python scripts/tasks.py up)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["frontend", "services/generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "S"]
+ignore = [
+    "E501",  # line length is the formatter's job; long user-facing strings stay unbroken
+    "S101",  # assert is how pytest works
+    "S603",  # subprocess calls use fixed argument lists, never a shell
+    "S607",  # openssl / docker are resolved from PATH on purpose and checked first
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S104", "S105", "S106", "S108"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["common", "core", "grpc_server", "grpc_client", "rest_api", "grpcdemo", "challenge", "certs"]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = ["services", "services/generated"]
+explicit_package_bases = true
+strict = true
+# The generated *_pb2_grpc.py modules have no type hints; calling them is expected.
+untyped_calls_exclude = ["grpcdemo"]
+files = ["services/common", "services/core", "services/grpc_server", "services/grpc_client", "services/rest_api", "challenge", "certs/scripts", "scripts"]
+
+[[tool.mypy.overrides]]
+module = ["grpc_health.*", "grpc_tools.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["grpcdemo.*"]
+ignore_errors = true

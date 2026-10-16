@@ -1,0 +1,4 @@
+# Scenario 06 - Impatient client
+target = "localhost:50051"
+ca = "certs/out/ca.crt"
+deadline_seconds = 0.3

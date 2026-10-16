@@ -1,0 +1,6 @@
+# Scenario 05 - Authenticated is not authorized
+target = "localhost:50052"
+ca = "certs/out/ca.crt"
+cert = "certs/out/client.crt"
+key = "certs/out/client.key"
+deadline_seconds = 5

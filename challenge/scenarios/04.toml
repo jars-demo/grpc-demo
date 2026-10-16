@@ -1,0 +1,6 @@
+# Scenario 04 - Same name, wrong signature
+target = "localhost:50052"
+ca = "certs/out/ca.crt"
+cert = "certs/out/rogue-client.crt"
+key = "certs/out/rogue-client.key"
+deadline_seconds = 5

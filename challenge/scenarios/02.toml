@@ -1,0 +1,4 @@
+# Scenario 02 - Right server, wrong name
+target = "127.0.0.1:50051"
+ca = "certs/out/ca.crt"
+deadline_seconds = 5

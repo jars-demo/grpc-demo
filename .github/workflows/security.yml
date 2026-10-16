@@ -1,0 +1,37 @@
+# Dependency audits. Separate from CI so that a newly published advisory for an unchanged
+# dependency shows up promptly (weekly) without blocking unrelated pull requests; it still runs on
+# every change to a lockfile.
+name: Dependency audit
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths: ['uv.lock', 'pyproject.toml', 'frontend/package.json', 'frontend/package-lock.json']
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: pip-audit (runtime dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
+      - run: uvx pip-audit==2.10.1 -r requirements.txt --disable-pip --no-deps
+
+  npm:
+    name: npm audit (website dependencies)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev --audit-level=low

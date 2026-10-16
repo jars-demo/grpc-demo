@@ -1,0 +1,207 @@
+# gRPC & HTTPS workshop: the complete local environment.
+#
+#   python scripts/tasks.py certs     # once: generate certs/out/ (needs openssl, or see README)
+#   python scripts/tasks.py up        # docker compose up --build --wait
+#
+# Every port is published on loopback only (127.0.0.1 and ::1): nothing here is reachable from
+# your network. Both addresses, because "localhost" resolves to both and clients try each.
+# Each container mounts only the certificate files it needs, read-only. Mounts use
+# create_host_path: false, so a missing certificate is an error instead of an empty directory.
+#
+# Linux: keys are mode 0600 and owned by you; the tasks script sets LOCAL_UID/LOCAL_GID so the
+# containers run as your user and can read them. Docker Desktop (Windows/macOS) needs nothing.
+
+name: grpc-demo
+
+x-service: &service
+  image: grpc-demo-service:local
+  build:
+    context: .
+    target: runtime
+  user: "${LOCAL_UID:-10001}:${LOCAL_GID:-10001}"
+  read_only: true
+  tmpfs: ["/tmp"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  stop_grace_period: 10s
+  restart: unless-stopped
+  environment: &service-env
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-ca: &ca
+  type: bind
+  source: ./certs/out/ca.crt
+  target: /app/certs/out/ca.crt
+  read_only: true
+  bind: { create_host_path: false }
+x-server-crt: &server-crt
+  type: bind
+  source: ./certs/out/server.crt
+  target: /app/certs/out/server.crt
+  read_only: true
+  bind: { create_host_path: false }
+x-server-key: &server-key
+  type: bind
+  source: ./certs/out/server.key
+  target: /app/certs/out/server.key
+  read_only: true
+  bind: { create_host_path: false }
+
+services:
+  # TLS on 50051, mutual TLS on 50052. Same servicers on both listeners.
+  grpc-server:
+    <<: *service
+    command: ["python", "-m", "grpc_server"]
+    environment:
+      <<: *service-env
+      GRPC_BIND_HOST: 0.0.0.0
+      GRPC_TLS_PORT: "50051"
+      GRPC_MTLS_PORT: "50052"
+      GRPC_ADMIN_IDENTITIES: ${GRPC_ADMIN_IDENTITIES:-workshop-admin}
+      GRPC_MAX_WORKERS: ${GRPC_MAX_WORKERS:-16}
+    volumes: [*ca, *server-crt, *server-key]
+    ports:
+      - "127.0.0.1:${GRPC_TLS_HOST_PORT:-50051}:50051"
+      - "[::1]:${GRPC_TLS_HOST_PORT:-50051}:50051"
+      - "127.0.0.1:${GRPC_MTLS_HOST_PORT:-50052}:50052"
+      - "[::1]:${GRPC_MTLS_HOST_PORT:-50052}:50052"
+    healthcheck:
+      # A real gRPC Health call over TLS with certificate verification, not just "port open".
+      test: ["CMD", "python", "-m", "grpc_server.healthcheck"]
+      interval: 5s
+      timeout: 4s
+      start_period: 10s
+      retries: 10
+
+  # The certificate-expiry exercise: a server presenting a certificate that expired in 2024.
+  grpc-expired:
+    <<: *service
+    command: ["python", "-m", "grpc_server"]
+    environment:
+      <<: *service-env
+      GRPC_BIND_HOST: 0.0.0.0
+      GRPC_TLS_PORT: "50053"
+      GRPC_MTLS_PORT: "0"
+      GRPC_SERVER_CERT_FILE: certs/out/expired-server.crt
+      GRPC_SERVER_KEY_FILE: certs/out/expired-server.key
+    volumes:
+      - type: bind
+        source: ./certs/out/expired-server.crt
+        target: /app/certs/out/expired-server.crt
+        read_only: true
+        bind: { create_host_path: false }
+      - type: bind
+        source: ./certs/out/expired-server.key
+        target: /app/certs/out/expired-server.key
+        read_only: true
+        bind: { create_host_path: false }
+    ports:
+      - "127.0.0.1:${GRPC_EXPIRED_HOST_PORT:-50053}:50053"
+      - "[::1]:${GRPC_EXPIRED_HOST_PORT:-50053}:50053"
+    healthcheck:
+      # A verifying health check would (correctly) fail on purpose here; check the TCP listener.
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 50053), timeout=2).close()"]
+      interval: 5s
+      timeout: 4s
+      start_period: 10s
+      retries: 10
+
+  # REST over plain HTTP: what an eavesdropper on the network would see in full.
+  rest-http:
+    <<: *service
+    command: ["python", "-m", "rest_api"]
+    environment:
+      <<: *service-env
+      REST_BIND_HOST: 0.0.0.0
+      REST_PORT: "8080"
+    ports:
+      - "127.0.0.1:${REST_HTTP_HOST_PORT:-8080}:8080"
+      - "[::1]:${REST_HTTP_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
+      interval: 5s
+      timeout: 4s
+      start_period: 10s
+      retries: 10
+
+  # The same REST API over HTTPS, using the workshop server certificate.
+  rest-https:
+    <<: *service
+    command: ["python", "-m", "rest_api"]
+    environment:
+      <<: *service-env
+      REST_BIND_HOST: 0.0.0.0
+      REST_PORT: "8443"
+      REST_TLS_CERT_FILE: certs/out/server.crt
+      REST_TLS_KEY_FILE: certs/out/server.key
+    volumes: [*ca, *server-crt, *server-key]
+    ports:
+      - "127.0.0.1:${REST_HTTPS_HOST_PORT:-8443}:8443"
+      - "[::1]:${REST_HTTPS_HOST_PORT:-8443}:8443"
+    healthcheck:
+      # Verifies the certificate chain and hostname, like a real client.
+      test: ["CMD", "python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://localhost:8443/health', timeout=2, context=ssl.create_default_context(cafile='certs/out/ca.crt'))"]
+      interval: 5s
+      timeout: 4s
+      start_period: 10s
+      retries: 10
+
+  # The workshop website, served as static files.
+  web:
+    image: grpc-demo-web:local
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3000}:8080"
+      - "[::1]:${WEB_HOST_PORT:-3000}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 4s
+      start_period: 5s
+      retries: 5
+
+  # Clients, examples, the certificate lab and the challenge, without Python on your machine:
+  #   docker compose --profile tools run --rm toolbox python -m grpc_client --target grpc-server:50051 hello
+  # Mounts certs/out and challenge/ read-write: they are the learner's workspace. Start the stack
+  # first (`up`); the toolbox does not start it for you, so it also works before certs exist.
+  toolbox:
+    image: grpc-demo-toolbox:local
+    build:
+      context: .
+      target: toolbox
+    profiles: ["tools"]
+    user: "${LOCAL_UID:-10001}:${LOCAL_GID:-10001}"
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      GRPC_TARGET: grpc-server:50051
+      REST_BASE_URL: https://rest-https:8443
+    volumes:
+      - ./certs/out:/app/certs/out
+      - ./challenge:/app/challenge
+
+  # The final challenge without Python on your machine. Shares grpc-server's network namespace,
+  # so localhost:50051 and 127.0.0.1:50051 behave exactly as they do on your host:
+  #   docker compose --profile tools run --rm challenge start
+  #   docker compose --profile tools run --rm challenge run 01
+  challenge:
+    image: grpc-demo-toolbox:local
+    build:
+      context: .
+      target: toolbox
+    profiles: ["tools"]
+    network_mode: "service:grpc-server"
+    user: "${LOCAL_UID:-10001}:${LOCAL_GID:-10001}"
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    entrypoint: ["python", "-m", "challenge"]
+    volumes:
+      - ./certs/out:/app/certs/out:ro
+      - ./challenge:/app/challenge

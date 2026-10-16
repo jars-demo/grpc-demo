@@ -1,0 +1,78 @@
+# OpenSSL configuration for the workshop's LOCAL EDUCATIONAL certificate authorities.
+#
+# certs/scripts/certs.py runs `openssl req` and `openssl ca` with this file. The CA's working
+# directory comes from the environment variable GRPC_DEMO_CA_DIR, so the same file drives both the
+# trusted workshop CA (certs/out/ca-db) and the deliberately untrusted "rogue" CA
+# (certs/out/rogue-ca-db) used in the failure exercises.
+#
+# Never import these CAs into your operating system or browser trust store. Anyone who copies the
+# CA private key can issue certificates your machine would then trust.
+
+[ ca ]
+default_ca = workshop_ca
+
+[ workshop_ca ]
+dir               = $ENV::GRPC_DEMO_CA_DIR
+database          = $dir/index.txt
+serial            = $dir/serial
+new_certs_dir     = $dir/newcerts
+default_md        = sha256
+default_days      = 90
+policy            = policy_workshop
+# Extensions come only from this file, never from the request: a CSR cannot ask for CA:TRUE or
+# extra SANs and get them signed.
+copy_extensions   = none
+unique_subject    = no
+preserve          = no
+email_in_dn       = no
+
+[ policy_workshop ]
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = supplied
+
+[ req ]
+distinguished_name = req_dn
+prompt             = no
+utf8               = yes
+
+[ req_dn ]
+# Unused: every request passes -subj. Present because openssl requires the section.
+CN = unused
+
+# --- The CA certificate itself ---------------------------------------------------------------
+[ v3_ca ]
+basicConstraints       = critical, CA:TRUE, pathlen:0
+keyUsage               = critical, keyCertSign, cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+
+# --- Server certificate: gRPC (50051/50052) and REST over HTTPS (8443) --------------------------
+# The Subject Alternative Name is what clients check the hostname against. The Common Name is NOT
+# used for hostname verification by modern clients. There is deliberately no IP address here:
+# connecting to 127.0.0.1 fails verification, which is chapter 09's hostname exercise.
+[ server_ext ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, digitalSignature
+extendedKeyUsage       = serverAuth
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid, issuer
+subjectAltName         = DNS:localhost, DNS:grpc-server, DNS:rest-https
+
+# --- Server certificate with a validity period in the past (expiry exercise) ---------------------
+[ expired_server_ext ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, digitalSignature
+extendedKeyUsage       = serverAuth
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid, issuer
+subjectAltName         = DNS:localhost, DNS:grpc-expired
+
+# --- Client certificates for mutual TLS ------------------------------------------------------
+# clientAuth only: these certificates cannot be used to impersonate a server.
+[ client_ext ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, digitalSignature
+extendedKeyUsage       = clientAuth
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid, issuer

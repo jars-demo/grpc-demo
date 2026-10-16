@@ -1,0 +1,34 @@
+name: Something did not work
+description: A command, chapter step, test or page behaved differently than documented.
+labels: [bug]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Chapter and step, page, or command.
+      placeholder: "09 · Certificate Validation, step 2"
+    validations: { required: true }
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      render: bash
+    validations: { required: true }
+  - type: textarea
+    id: output
+    attributes:
+      label: What happened (full output)
+      description: Paste the complete output, including the `details:` line for gRPC errors. Never paste private keys, even workshop ones.
+      render: text
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Windows 11 / PowerShell 7, Docker Desktop 4.x, uv 0.11, OpenSSL 3.2"
+    validations: { required: true }

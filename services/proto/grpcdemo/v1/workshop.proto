@@ -1,0 +1,155 @@
+// The Workshop Service contract.
+//
+// This file is the single source of truth for the gRPC API. Python bindings are generated from it
+// with `python scripts/generate_proto.py` into services/generated/ and must never be edited by hand.
+//
+// Compatibility rules (the same ones you would follow for a real public API):
+//   * Never change the number of an existing field. The number, not the name, is what goes on the wire.
+//   * Never reuse a deleted field number; add it to a `reserved` statement instead.
+//   * Adding a new field or a new RPC is backwards compatible. Removing or renaming one is not.
+syntax = "proto3";
+
+package grpcdemo.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// WorkshopService is public: it is reachable over plaintext (loopback only), TLS and mutual TLS.
+// It demonstrates the four gRPC interaction patterns.
+service WorkshopService {
+  // Unary: one request, one response. The gRPC equivalent of `POST /v1/greetings`.
+  rpc SayHello(HelloRequest) returns (HelloReply);
+
+  // Unary: list the topics covered by the workshop. Equivalent of `GET /v1/topics`.
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+
+  // Unary: fetch one topic. Fails with NOT_FOUND for an unknown id (REST: 404).
+  rpc GetTopic(GetTopicRequest) returns (Topic);
+
+  // Server streaming: one request, then the server sends a sequence of events and closes the
+  // stream. The client can stop early by cancelling, or by setting a deadline.
+  rpc WatchEvents(WatchEventsRequest) returns (stream WorkshopEvent);
+
+  // Client streaming: the client sends many measurements, then half-closes its side; the server
+  // replies once with a summary.
+  rpc RecordMeasurements(stream Measurement) returns (MeasurementSummary);
+
+  // Bidirectional streaming: both sides send independently over the same HTTP/2 stream. The server
+  // answers each message as it arrives, without waiting for the client to finish.
+  rpc Chat(stream ChatMessage) returns (stream ChatReply);
+}
+
+// AdminService is only usable over mutual TLS. Every call is authorized against the identity in the
+// client certificate (its Common Name): a certificate signed by the trusted CA proves *who* the
+// caller is, it does not by itself grant access. See docs/security.md.
+service AdminService {
+  // Returns per-method call counts and uptime. Requires the `workshop-admin` identity.
+  rpc GetServerStats(GetServerStatsRequest) returns (ServerStats);
+}
+
+message HelloRequest {
+  // Who to greet. 1 to 64 characters after trimming whitespace.
+  string name = 1;
+  // Optional language code: "en" (default), "es", "fr", "de", "hi".
+  string language = 2;
+  // Teaching aid for deadlines: the server waits this long before replying (0 to 5000 ms).
+  uint32 simulated_delay_ms = 3;
+}
+
+message HelloReply {
+  string message = 1;
+  // When the server produced the reply.
+  google.protobuf.Timestamp served_at = 2;
+  // How the client reached the server: "plaintext", "tls" or "mtls". Derived from the connection,
+  // not from anything the client claims.
+  string transport_security = 3;
+  // The Common Name from the client certificate, empty unless the connection is mutual TLS.
+  string client_identity = 4;
+}
+
+// Which layer of the stack a topic belongs to.
+enum Layer {
+  // Proto3 enums must start at zero; zero means "not set".
+  LAYER_UNSPECIFIED = 0;
+  LAYER_APPLICATION = 1;
+  LAYER_SECURITY = 2;
+  LAYER_TRANSPORT = 3;
+  LAYER_SERIALIZATION = 4;
+}
+
+message Topic {
+  string id = 1;
+  string title = 2;
+  string summary = 3;
+  Layer layer = 4;
+  uint32 minutes = 5;
+}
+
+message ListTopicsRequest {
+  // Optional filter. LAYER_UNSPECIFIED returns every topic.
+  Layer layer = 1;
+}
+
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+}
+
+message GetTopicRequest {
+  string id = 1;
+}
+
+message WatchEventsRequest {
+  // Number of events to send (1 to 50).
+  uint32 count = 1;
+  // Pause between events (0 to 5000 ms).
+  uint32 interval_ms = 2;
+}
+
+message WorkshopEvent {
+  // 1-based position in the stream.
+  uint32 sequence = 1;
+  string topic_id = 2;
+  string message = 3;
+  google.protobuf.Timestamp emitted_at = 4;
+}
+
+message Measurement {
+  // Free-form label, for example "say-hello". Up to 64 characters.
+  string label = 1;
+  // A latency sample in milliseconds. Must be finite and non-negative.
+  double value_ms = 2;
+}
+
+message MeasurementSummary {
+  uint32 count = 1;
+  double min_ms = 2;
+  double max_ms = 3;
+  double mean_ms = 4;
+  // Median (50th percentile) using the nearest-rank method.
+  double p50_ms = 5;
+  // Distinct labels seen, sorted.
+  repeated string labels = 6;
+}
+
+message ChatMessage {
+  string text = 1;
+}
+
+message ChatReply {
+  // 1-based count of messages the server has received on this stream.
+  uint32 sequence = 1;
+  // What the server received, so you can match replies to messages.
+  string echo = 2;
+  // A small transformation, so the reply visibly comes from the server.
+  string reversed = 3;
+  uint32 word_count = 4;
+  google.protobuf.Timestamp received_at = 5;
+}
+
+message GetServerStatsRequest {}
+
+message ServerStats {
+  double uptime_seconds = 1;
+  // Calls started per full method name, e.g. "/grpcdemo.v1.WorkshopService/SayHello".
+  map<string, uint64> calls_by_method = 2;
+  string caller_identity = 3;
+}
