@@ -71,9 +71,9 @@ Real problems the runs exposed, all fixed:
 - jsdom 30 requires Node ≥ 22.14; pinned jsdom 26.1.0 so the frontend tests run on every Node 22 release.
 - The repository's own docs tripped the "never disable verification" test; the wording was made explicit.
 
-## 6. Not verified here
+## 6. CI and remaining gaps
 
-- **GitHub Actions** have not run: the repository has not been pushed. The CI steps were executed locally where possible (all Python and website checks, image build, stack, smoke and integration tests, challenge, image scan, graceful shutdown), but on Windows, not on the Linux runner. The Linux-specific paths - containers running as the runner's UID to read `0600` keys, and the POSIX key-permission test - are exercised only in CI.
+- **GitHub Actions:** the first CI run on `main` (run 38913256115, ubuntu-latest) passed every job: Python lint/types/proto and `131 passed` (the POSIX key-permission test included, nothing skipped), website checks and build, Compose configuration, and the full stack job - containers running as the runner's UID with `0600` keys, image key scan, `21/21` smoke checks, `21 passed` integration tests, the Docker challenge, graceful shutdown.
 - **macOS** was not tested.
 - **Deployment** to Vercel and the `grpc.jishanahmed.in` DNS record have not been set up; see [deployment.md](deployment.md).
 - The **interactive** `chat` mode (typing on stdin) was verified with piped input, not with a human at a terminal.
