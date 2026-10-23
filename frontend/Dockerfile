@@ -3,7 +3,7 @@
 #
 #   docker build -f frontend/Dockerfile -t grpc-demo-web .
 
-FROM node:22.22.0-alpine AS build
+FROM node:26.12.0-alpine AS build
 WORKDIR /repo/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
