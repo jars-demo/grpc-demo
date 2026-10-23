@@ -14,7 +14,7 @@ COPY challenge/scenarios/ /repo/challenge/scenarios/
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runtime
 LABEL org.opencontainers.image.title="grpc-demo-web" \
       org.opencontainers.image.description="gRPC & HTTPS workshop website (static)" \
       org.opencontainers.image.source="https://github.com/jars-demo/grpc-demo" \
