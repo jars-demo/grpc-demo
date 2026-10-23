@@ -12,7 +12,7 @@ dependencies = [
     "grpcio-health-checking==1.84.0",
     "protobuf==7.36.2",
     # REST comparison: framework, ASGI server, validation
-    "fastapi==0.143.2",
+    "fastapi==0.151.0",
     "uvicorn==0.54.0",
     "pydantic==2.14.1",
     # HTTP client for the REST examples and smoke test
